@@ -1,0 +1,30 @@
+package main
+
+import (
+	"uptime-monitor/db"
+	"uptime-monitor/handlers"
+	"uptime-monitor/services"
+
+	"github.com/gin-gonic/gin"
+)
+
+func main() {
+
+	db.Connect()
+
+	go services.CheckWebsites()
+
+	r := gin.Default()
+
+	r.Static("/dashboard", "./static")
+
+	r.GET("/monitors", handlers.GetMonitors)
+	r.POST("/monitors", handlers.CreateMonitor)
+	r.PUT("/monitors/:id", handlers.UpdateMonitor)
+	r.DELETE("/monitors/:id", handlers.DeleteMonitor)
+	r.GET("/checks/:monitor_id", handlers.GetChecks)
+	r.GET("/uptime/:monitor_id", handlers.GetUptime)
+	r.GET("/status/:monitor_id", handlers.GetStatus)
+
+	r.Run(":8080")
+}

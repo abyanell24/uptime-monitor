@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Status Page</title>
+<style>
+body { font-family: Arial; margin: 40px; }
+.monitor { border:1px solid #ddd; padding:15px; margin-bottom:20px; }
+.up { color:green; }
+.down { color:red; }
+</style>
+</head>
+<body>
+<h1>Public Status Page</h1>
+{{range .monitors}}
+<div class="monitor">
+<h3>{{.URL}}</h3>
+<p>Status: {{if eq .Status "UP"}}<span class="up">🟢 UP</span>{{else}}<span class="down">🔴 DOWN</span>{{end}}</p>
+<p>Uptime: {{printf "%.2f" .Uptime}}%</p>
+<p>Last Response: {{.LastResponse}} ms</p>
+<p>History: {{.History}}</p>
+</div>
+{{end}}
+</body>
+</html>
