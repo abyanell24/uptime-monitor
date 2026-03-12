@@ -1,177 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Uptime Monitor</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-body {
-    font-family: Arial;
-    margin: 40px;
-}
-
-.monitor {
-    border:1px solid #ddd;
-    padding:15px;
-    margin-bottom:20px;
-}
-
-.up {
-    color:green;
-}
-
-.down {
-    color:red;
-}
-</style>
-
+    <title>Uptime Monitor Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+        .monitor { border:1px solid #ddd; padding:15px; margin-bottom:20px; }
+        .up { color:green; }
+        .down { color:red; }
+    </style>
 </head>
-
 <body>
-
 <h1>Uptime Monitor Dashboard</h1>
 
 <h3>Add Monitor</h3>
-
 <input id="urlInput" placeholder="https://example.com">
 <button onclick="addMonitor()">Add</button>
-
 <hr>
 
 <div id="monitors"></div>
 
 <script>
+async function loadMonitors() {
+    const res = await fetch("/monitors");
+    const monitors = await res.json();
+    const container = document.getElementById("monitors");
+    container.innerHTML = "";
 
-async function deleteMonitor(id) {
+    for (const m of monitors) {
+        const statusRes = await fetch(`/status/${m.id}`);
+        const statusData = await statusRes.json();
+        const uptimeRes = await fetch(`/uptime/${m.id}`);
+        const uptime = await uptimeRes.json();
+        const checksRes = await fetch(`/checks/${m.id}`);
+        const checks = await checksRes.json();
 
-    if (!confirm("Delete this monitor?")) return
+        const labels = checks.map(c => new Date(c.checked_at).toLocaleTimeString()).reverse();
+        const data = checks.map(c => c.response_time).reverse();
 
-    await fetch(`/monitors/${id}`, {
-        method: "DELETE"
-    })
-
-    location.reload()
-}
-
-async function addMonitor(){
-
-    const url = document.getElementById("urlInput").value
-
-    await fetch("/monitors",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({url:url})
-    })
-
-    location.reload()
-}
-
-async function editMonitor(id, currentUrl){
-
-    const newUrl = prompt("Edit URL:", currentUrl)
-
-    if(!newUrl) return
-
-    await fetch(`/monitors/${id}`,{
-        method:"PUT",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-            url:newUrl
-        })
-    })
-
-    location.reload()
-}
-
-async function loadMonitors(){
-
-    const res = await fetch("/monitors")
-    const monitors = await res.json()
-
-    const container = document.getElementById("monitors")
-
-    container.innerHTML=""
-
-    for(const m of monitors){
-
-        const statusRes = await fetch(`/status/${m.id}`)
-        const statusData = await statusRes.json()
-
-        const uptimeRes = await fetch(`/uptime/${m.id}`)
-        const uptime = await uptimeRes.json()
-
-        const checksRes = await fetch(`/checks/${m.id}`)
-        const checks = await checksRes.json()
-
-        let lastResponse = 0
-        if (checks.length > 0) {
-            lastResponse = checks[0].response_time
-        }
-
-        const div = document.createElement("div")
-        div.className="monitor"
+        const div = document.createElement("div");
+        div.className = "monitor";
 
         div.innerHTML = `
             <h3>${m.url}</h3>
-
-            <p>
-            Status: ${statusData.status == "UP" ? "🟢 UP" : "🔴 DOWN"} 
-            ${lastResponse} ms
-            </p>
-
+            <p>Status: <span class="${statusData.status=='UP'?'up':'down'}">${statusData.status}</span></p>
             <p>Uptime: ${uptime.uptime.toFixed(2)}%</p>
-
-            <div id="history-${m.id}"></div>
-
-            <button onclick="editMonitor(${m.id}, '${m.url}')">
-            Edit
-            </button>
-
-            <button onclick="deleteMonitor(${m.id})">
-            Delete
-            </button>
-
+            <button onclick="deleteMonitor(${m.id})">Delete</button>
             <canvas id="chart-${m.id}" width="400" height="150"></canvas>
-            `
+        `;
 
-        container.appendChild(div)
+        container.appendChild(div);
 
-        const labels = checks.map(c => new Date(c.checked_at).toLocaleTimeString()).reverse()
-        const data = checks.map(c => c.response_time).reverse()
-
-        const ctx = document.getElementById(`chart-${m.id}`).getContext("2d")
-
-        new Chart(ctx,{
-            type:"line",
-            data:{
-                labels:labels,
-                datasets:[{
-                    label:"Response Time (ms)",
-                    data:data
-                }]
-            }
-        })
-
-        const historyDiv = document.getElementById(`history-${m.id}`)
-        let historyHTML = ""
-        checks.slice(0,8).forEach(c => {
-            historyHTML += c.status == 200 ? "🟢 " : "🔴 "
-    })
-    historyDiv.innerHTML = `<p>History:</p><p>${historyHTML}</p>`
-
+        const ctx = document.getElementById(`chart-${m.id}`).getContext("2d");
+        new Chart(ctx, {
+            type: "line",
+            data: { labels, datasets:[{label:"Response Time (ms)", data, borderColor:"blue", fill:false}] },
+            options: { animation:false, responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+        });
     }
 }
 
-loadMonitors()
+async function addMonitor() {
+    const url = document.getElementById("urlInput").value;
+    await fetch("/monitors", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({url}) });
+    loadMonitors();
+}
 
-setInterval(loadMonitors,10000)
+async function deleteMonitor(id) {
+    if(!confirm("Delete this monitor?")) return;
+    await fetch(`/monitors/${id}`, { method:"DELETE" });
+    loadMonitors();
+}
 
+loadMonitors();
+setInterval(loadMonitors, 10000);
 </script>
-
 </body>
 </html>

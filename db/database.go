@@ -1,30 +1,32 @@
 package db
 
 import (
-    "database/sql"
-    "fmt"
-    "os"
+	"database/sql"
+	"fmt"
+	"os"
 
-    _ "github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 var DB *sql.DB
 
 func ConnectDB() {
-    dbURL := os.Getenv("DATABASE_URL")
-    if dbURL == "" {
-        panic("DATABASE_URL environment variable not set")
-    }
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		dbURL = "postgres://postgres:postgres@localhost:5433/uptime?sslmode=disable"
+		fmt.Println("DATABASE_URL not set, using local default:", dbURL)
+	}
 
-    var err error
-    DB, err = sql.Open("postgres", dbURL)
-    if err != nil {
-        panic(err)
-    }
+	var err error
+	DB, err = sql.Open("postgres", dbURL)
+	if err != nil {
+		panic(err)
+	}
 
-    if err = DB.Ping(); err != nil {
-        panic(fmt.Sprintf("Failed to connect to database: %v", err))
-    }
+	err = DB.Ping()
+	if err != nil {
+		panic(err)
+	}
 
-    fmt.Println("Database connected")
+	fmt.Println("Database connected")
 }

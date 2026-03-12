@@ -1,94 +1,78 @@
 package handlers
 
 import (
-    "encoding/json"
-    "net/http"
-    "strconv"
+	"net/http"
+	"strconv"
+	"uptime-monitor/db"
 
-    "github.com/gorilla/mux"
-    "uptime-monitor/db"
+	"github.com/gin-gonic/gin"
 )
 
-// Monitor struct
 type Monitor struct {
-    ID  int    `json:"id"`
-    URL string `json:"url"`
+	ID  int    `json:"id"`
+	URL string `json:"url"`
 }
 
-// GetMonitors returns all monitors
-func GetMonitors(w http.ResponseWriter, r *http.Request) {
-    rows, err := db.DB.Query("SELECT id, url FROM monitors")
-    if err != nil {
-        http.Error(w, err.Error(), 500)
-        return
-    }
-    defer rows.Close()
+func GetMonitors(c *gin.Context) {
+	rows, err := db.DB.Query("SELECT id, url FROM monitors")
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
 
-    var monitors []Monitor
-    for rows.Next() {
-        var m Monitor
-        rows.Scan(&m.ID, &m.URL)
-        monitors = append(monitors, m)
-    }
+	var monitors []Monitor
+	for rows.Next() {
+		var m Monitor
+		rows.Scan(&m.ID, &m.URL)
+		monitors = append(monitors, m)
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(monitors)
+	c.JSON(200, monitors)
 }
 
-// CreateMonitor adds a new monitor
-func CreateMonitor(w http.ResponseWriter, r *http.Request) {
-    var m Monitor
-    json.NewDecoder(r.Body).Decode(&m)
+func CreateMonitor(c *gin.Context) {
+	var m Monitor
+	if err := c.ShouldBindJSON(&m); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
 
-    err := db.DB.QueryRow("INSERT INTO monitors (url) VALUES ($1) RETURNING id", m.URL).Scan(&m.ID)
-    if err != nil {
-        http.Error(w, err.Error(), 500)
-        return
-    }
+	err := db.DB.QueryRow("INSERT INTO monitors (url) VALUES ($1) RETURNING id", m.URL).Scan(&m.ID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(m)
+	c.JSON(200, m)
 }
 
-// UpdateMonitor updates the URL of an existing monitor
-func UpdateMonitor(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    idStr := vars["id"]
-    id, err := strconv.Atoi(idStr)
-    if err != nil {
-        http.Error(w, "Invalid monitor ID", 400)
-        return
-    }
+func UpdateMonitor(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	var m Monitor
+	if err := c.ShouldBindJSON(&m); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
 
-    var m Monitor
-    json.NewDecoder(r.Body).Decode(&m)
+	_, err := db.DB.Exec("UPDATE monitors SET url=$1 WHERE id=$2", m.URL, id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
 
-    _, err = db.DB.Exec("UPDATE monitors SET url=$1 WHERE id=$2", m.URL, id)
-    if err != nil {
-        http.Error(w, err.Error(), 500)
-        return
-    }
-
-    m.ID = id
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(m)
+	m.ID = id
+	c.JSON(200, m)
 }
 
-// DeleteMonitor removes a monitor
-func DeleteMonitor(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    idStr := vars["id"]
-    id, err := strconv.Atoi(idStr)
-    if err != nil {
-        http.Error(w, "Invalid monitor ID", 400)
-        return
-    }
+func DeleteMonitor(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
 
-    _, err = db.DB.Exec("DELETE FROM monitors WHERE id=$1", id)
-    if err != nil {
-        http.Error(w, err.Error(), 500)
-        return
-    }
+	_, err := db.DB.Exec("DELETE FROM monitors WHERE id=$1", id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
 
-    w.WriteHeader(http.StatusNoContent)
+	c.Status(204)
 }

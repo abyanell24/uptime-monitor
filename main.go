@@ -1,31 +1,42 @@
 package main
 
 import (
-    "fmt"
-    "uptime-monitor/db"
-    "uptime-monitor/handlers"
-    "uptime-monitor/services"
+	"fmt"
+	"uptime-monitor/db"
+	"uptime-monitor/handlers"
+	"uptime-monitor/services"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-    db.ConnectDB()
-    fmt.Println("App started")
+	db.ConnectDB()
+	fmt.Println("App started")
+	go services.CheckWebsites() // goroutine background checker
 
-    go services.CheckWebsites()
+	r := gin.Default()
 
-    r := gin.Default()
-    r.Static("/dashboard", "./static")
+	// Load templates
+	r.LoadHTMLGlob("templates/*")
 
-    // Routes
-    r.GET("/monitors", handlers.GetMonitors)
-    r.POST("/monitors", handlers.CreateMonitor)
-    r.PUT("/monitors/:id", handlers.UpdateMonitor)
-    r.DELETE("/monitors/:id", handlers.DeleteMonitor)
-    r.GET("/checks/:monitor_id", handlers.GetChecks)
-    r.GET("/uptime/:monitor_id", handlers.GetUptime)
-    r.GET("/status/:monitor_id", handlers.GetStatus)
+	// Serve static dashboard
+	r.Static("/dashboard", "./static")
 
-    r.Run(":8080")
+	// Routes: monitor CRUD
+	r.GET("/monitors", handlers.GetMonitors)
+	r.POST("/monitors", handlers.CreateMonitor)
+	r.PUT("/monitors/:id", handlers.UpdateMonitor)
+	r.DELETE("/monitors/:id", handlers.DeleteMonitor)
+
+	// Routes: checks
+	r.GET("/checks/:monitor_id", handlers.GetChecks)
+	r.GET("/uptime/:monitor_id", handlers.GetUptime)
+	r.GET("/status/:monitor_id", handlers.GetStatus)
+
+	// Public status page
+	r.GET("/status", func(c *gin.Context) {
+		c.HTML(200, "status.html", nil)
+	})
+
+	r.Run(":8080")
 }
