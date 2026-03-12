@@ -1,25 +1,37 @@
-package db
+package main
 
 import (
-	"database/sql"
-	"fmt"
+    "database/sql"
+    "fmt"
+    "os"
 
-	_ "github.com/lib/pq"
+    _ "github.com/lib/pq"
 )
 
 var DB *sql.DB
 
-func Connect() {
+// ConnectDB connects to the PostgreSQL database
+func ConnectDB() {
+    // Ambil DATABASE_URL dari environment variable
+    dbURL := os.Getenv("DATABASE_URL")
 
-	connStr := "host=localhost port=5433 user=postgres password=postgres dbname=uptime sslmode=disable"
+    if dbURL == "" {
+        // Kalau DATABASE_URL belum diset (misal testing lokal), pakai default localhost
+        dbURL = "postgres://postgres:postgres@localhost:5433/uptime?sslmode=disable"
+        fmt.Println("DATABASE_URL not set, using local default:", dbURL)
+    }
 
-	database, err := sql.Open("postgres", connStr)
+    var err error
+    DB, err = sql.Open("postgres", dbURL)
+    if err != nil {
+        panic(err)
+    }
 
-	if err != nil {
-		panic(err)
-	}
+    // Tes koneksi
+    err = DB.Ping()
+    if err != nil {
+        panic(err)
+    }
 
-	DB = database
-
-	fmt.Println("database connected")
+    fmt.Println("Database connected")
 }

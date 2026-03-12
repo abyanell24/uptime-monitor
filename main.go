@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-
+	ConnectDB()
 	db.Connect()
 
 	go services.CheckWebsites()
