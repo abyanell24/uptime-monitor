@@ -45,3 +45,12 @@ func GetChecks(c *gin.Context) {
 
 	c.JSON(200, checks)
 }
+
+func GetMonitorsHandler() { // ubah namanya biar unik
+    rows, err := db.DB.Query("SELECT * FROM monitors")
+    if err != nil {
+        panic(err)
+    }
+    defer rows.Close()
+    // ...
+}

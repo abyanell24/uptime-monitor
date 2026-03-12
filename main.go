@@ -1,33 +1,32 @@
 package main
 
 import (
-	"uptime-monitor/db"
-	"uptime-monitor/handlers"
-	"uptime-monitor/services"
-
-	"github.com/gin-gonic/gin"
-
-	"fmt"
+    "fmt"
     "uptime-monitor/db"
+    "uptime-monitor/handlers"
+    "uptime-monitor/services"
+
+    "github.com/gin-gonic/gin"
 )
 
 func main() {
-	db.ConnectDB()
-	
-	fmt.Println("App started")
-	go services.CheckWebsites()
 
-	r := gin.Default()
+    db.ConnectDB()
+    fmt.Println("App started")
+    
+    go services.CheckWebsites()
 
-	r.Static("/dashboard", "./static")
+    r := gin.Default()
 
-	r.GET("/monitors", handlers.GetMonitors)
-	r.POST("/monitors", handlers.CreateMonitor)
-	r.PUT("/monitors/:id", handlers.UpdateMonitor)
-	r.DELETE("/monitors/:id", handlers.DeleteMonitor)
-	r.GET("/checks/:monitor_id", handlers.GetChecks)
-	r.GET("/uptime/:monitor_id", handlers.GetUptime)
-	r.GET("/status/:monitor_id", handlers.GetStatus)
+    r.Static("/dashboard", "./static")
 
-	r.Run(":8080")
+    r.GET("/monitors", handlers.GetMonitors)
+    r.POST("/monitors", handlers.CreateMonitor)
+    r.PUT("/monitors/:id", handlers.UpdateMonitor)
+    r.DELETE("/monitors/:id", handlers.DeleteMonitor)
+    r.GET("/checks/:monitor_id", handlers.GetChecks)
+    r.GET("/uptime/:monitor_id", handlers.GetUptime)
+    r.GET("/status/:monitor_id", handlers.GetStatus)
+
+    r.Run(":8080")
 }
