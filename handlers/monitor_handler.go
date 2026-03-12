@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"net/http"
 	"strconv"
 	"uptime-monitor/db"
 
@@ -13,6 +12,7 @@ type Monitor struct {
 	URL string `json:"url"`
 }
 
+// GetMonitors lists all monitors
 func GetMonitors(c *gin.Context) {
 	rows, err := db.DB.Query("SELECT id, url FROM monitors")
 	if err != nil {
@@ -31,6 +31,7 @@ func GetMonitors(c *gin.Context) {
 	c.JSON(200, monitors)
 }
 
+// CreateMonitor adds a new monitor
 func CreateMonitor(c *gin.Context) {
 	var m Monitor
 	if err := c.ShouldBindJSON(&m); err != nil {
@@ -47,6 +48,7 @@ func CreateMonitor(c *gin.Context) {
 	c.JSON(200, m)
 }
 
+// UpdateMonitor updates monitor URL
 func UpdateMonitor(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var m Monitor
@@ -65,6 +67,7 @@ func UpdateMonitor(c *gin.Context) {
 	c.JSON(200, m)
 }
 
+// DeleteMonitor removes a monitor
 func DeleteMonitor(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 

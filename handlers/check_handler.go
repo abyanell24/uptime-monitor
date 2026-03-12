@@ -1,10 +1,9 @@
 package handlers
 
 import (
-	"net/http"
 	"uptime-monitor/db"
 	"time"
-
+	
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,6 +15,7 @@ type Check struct {
 	CheckedAt    time.Time `json:"checked_at"`
 }
 
+// GetChecks returns last 20 checks for a monitor
 func GetChecks(c *gin.Context) {
 	monitorID := c.Param("monitor_id")
 	rows, err := db.DB.Query("SELECT id, monitor_id, status, response_time, checked_at FROM checks WHERE monitor_id=$1 ORDER BY checked_at DESC LIMIT 20", monitorID)
@@ -35,6 +35,7 @@ func GetChecks(c *gin.Context) {
 	c.JSON(200, checks)
 }
 
+// GetUptime calculates uptime percentage
 func GetUptime(c *gin.Context) {
 	monitorID := c.Param("monitor_id")
 
@@ -49,6 +50,7 @@ func GetUptime(c *gin.Context) {
 	c.JSON(200, gin.H{"uptime": uptime})
 }
 
+// GetStatus returns latest status
 func GetStatus(c *gin.Context) {
 	monitorID := c.Param("monitor_id")
 
