@@ -12,23 +12,25 @@ import (
 func main() {
 	db.ConnectDB()
 	fmt.Println("App started")
-	go services.CheckWebsites() // goroutine background checker
+
+	go services.CheckWebsites()
 
 	r := gin.Default()
 
 	// Load templates
 	r.LoadHTMLGlob("templates/*")
 
-	// Serve static dashboard
-	r.Static("/dashboard", "./static")
+	// Redirect /dashboard → index.html
+	r.GET("/dashboard", func(c *gin.Context) {
+		c.Redirect(302, "/dashboard/index.html")
+	})
+	r.Static("/dashboard", "./static/dashboard")
 
-	// Routes: monitor CRUD
+	// API routes
 	r.GET("/monitors", handlers.GetMonitors)
 	r.POST("/monitors", handlers.CreateMonitor)
 	r.PUT("/monitors/:id", handlers.UpdateMonitor)
 	r.DELETE("/monitors/:id", handlers.DeleteMonitor)
-
-	// Routes: checks
 	r.GET("/checks/:monitor_id", handlers.GetChecks)
 	r.GET("/uptime/:monitor_id", handlers.GetUptime)
 	r.GET("/status/:monitor_id", handlers.GetStatus)

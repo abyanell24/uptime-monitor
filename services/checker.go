@@ -2,13 +2,12 @@ package services
 
 import (
 	"fmt"
-    "net/http"
-	"uptime-monitor/db"
+	"net/http"
 	"time"
+	"uptime-monitor/db"
 )
 
 func CheckWebsites() {
-	// Jangan jalan kalau DB belum siap
 	if db.DB == nil {
 		fmt.Println("DB is nil, skipping checks")
 		return
@@ -38,12 +37,10 @@ func CheckWebsites() {
 		}
 		rows.Close()
 
-		// Loop setiap monitor
 		for _, m := range monitors {
 			start := time.Now()
 			status := "DOWN"
 
-			// Ping website
 			resp, err := http.Get(m.URL)
 			if err == nil && resp.StatusCode < 400 {
 				status = "UP"
@@ -54,7 +51,6 @@ func CheckWebsites() {
 
 			responseTime := time.Since(start).Milliseconds()
 
-			// Insert check
 			_, err = db.DB.Exec(
 				"INSERT INTO checks (monitor_id, status, response_time) VALUES ($1, $2, $3)",
 				m.ID, status, responseTime,
@@ -64,6 +60,6 @@ func CheckWebsites() {
 			}
 		}
 
-		time.Sleep(10 * time.Second) // interval cek
+		time.Sleep(10 * time.Second)
 	}
 }
