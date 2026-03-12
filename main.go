@@ -20,6 +20,10 @@ func main() {
 	// Load templates
 	r.LoadHTMLGlob("templates/*")
 
+	r.GET("/", func(c *gin.Context) {
+	c.Redirect(302, "/dashboard")
+})
+
 	// Redirect /dashboard → index.html
 	r.GET("/dashboard", func(c *gin.Context) {
 		c.Redirect(302, "/dashboard/index.html")
