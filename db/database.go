@@ -16,9 +16,8 @@ func ConnectDB() {
     dbURL := os.Getenv("DATABASE_URL")
 
     if dbURL == "" {
-        // Kalau DATABASE_URL belum diset (misal testing lokal), pakai default localhost
-        dbURL = "postgres://postgres:postgres@localhost:5433/uptime?sslmode=disable"
-        fmt.Println("DATABASE_URL not set, using local default:", dbURL)
+        // Kalau env belum diset → panic supaya kita tahu
+        panic("DATABASE_URL environment variable not set")
     }
 
     var err error
@@ -28,9 +27,8 @@ func ConnectDB() {
     }
 
     // Tes koneksi
-    err = DB.Ping()
-    if err != nil {
-        panic(err)
+    if err = DB.Ping(); err != nil {
+        panic(fmt.Sprintf("Failed to connect to database: %v", err))
     }
 
     fmt.Println("Database connected")
