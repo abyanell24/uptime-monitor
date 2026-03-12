@@ -10,22 +10,23 @@ import (
 
 var DB *sql.DB
 
+// ConnectDB connects to PostgreSQL and panics if DATABASE_URL not set or can't connect
 func ConnectDB() {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://postgres:postgres@localhost:5433/uptime?sslmode=disable"
-		fmt.Println("DATABASE_URL not set, using local default:", dbURL)
+		panic("DATABASE_URL not set. Set it in Railway Environment Variables!")
 	}
 
 	var err error
 	DB, err = sql.Open("postgres", dbURL)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("Failed to open DB: %v", err))
 	}
 
+	// Test connection
 	err = DB.Ping()
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("Failed to connect to DB: %v", err))
 	}
 
 	fmt.Println("Database connected")

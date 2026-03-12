@@ -1,34 +1,69 @@
 package services
 
 import (
+	"fmt"
     "net/http"
-    "uptime-monitor/db"
-    "time"
+	"uptime-monitor/db"
+	"time"
 )
 
 func CheckWebsites() {
-    for {
-        rows, _ := db.DB.Query("SELECT id, url FROM monitors")
-        for rows.Next() {
-            var id int
-            var url string
-            rows.Scan(&id, &url)
+	// Jangan jalan kalau DB belum siap
+	if db.DB == nil {
+		fmt.Println("DB is nil, skipping checks")
+		return
+	}
 
-            start := time.Now()
-            resp, err := http.Get(url)
-            duration := time.Since(start).Milliseconds()
+	for {
+		rows, err := db.DB.Query("SELECT id, url FROM monitors")
+		if err != nil {
+			fmt.Println("Error fetching monitors:", err)
+			time.Sleep(10 * time.Second)
+			continue
+		}
 
-            status := "DOWN"
-            if err == nil && resp.StatusCode < 400 {
-                status = "UP"
-            }
+		type Monitor struct {
+			ID  int
+			URL string
+		}
 
-            db.DB.Exec(
-                "INSERT INTO checks (monitor_id, status, response_time, checked_at) VALUES ($1,$2,$3,$4)",
-                id, status, duration, time.Now(),
-            )
-        }
-        rows.Close()
-        time.Sleep(10 * time.Second)
-    }
+		var monitors []Monitor
+		for rows.Next() {
+			var m Monitor
+			if err := rows.Scan(&m.ID, &m.URL); err != nil {
+				fmt.Println("Error scanning monitor:", err)
+				continue
+			}
+			monitors = append(monitors, m)
+		}
+		rows.Close()
+
+		// Loop setiap monitor
+		for _, m := range monitors {
+			start := time.Now()
+			status := "DOWN"
+
+			// Ping website
+			resp, err := http.Get(m.URL)
+			if err == nil && resp.StatusCode < 400 {
+				status = "UP"
+			}
+			if resp != nil {
+				resp.Body.Close()
+			}
+
+			responseTime := time.Since(start).Milliseconds()
+
+			// Insert check
+			_, err = db.DB.Exec(
+				"INSERT INTO checks (monitor_id, status, response_time) VALUES ($1, $2, $3)",
+				m.ID, status, responseTime,
+			)
+			if err != nil {
+				fmt.Println("Error inserting check:", err)
+			}
+		}
+
+		time.Sleep(10 * time.Second) // interval cek
+	}
 }
