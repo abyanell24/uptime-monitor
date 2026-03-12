@@ -10,16 +10,15 @@ import (
 )
 
 func main() {
-
     db.ConnectDB()
     fmt.Println("App started")
-    
+
     go services.CheckWebsites()
 
     r := gin.Default()
-
     r.Static("/dashboard", "./static")
 
+    // Routes
     r.GET("/monitors", handlers.GetMonitors)
     r.POST("/monitors", handlers.CreateMonitor)
     r.PUT("/monitors/:id", handlers.UpdateMonitor)

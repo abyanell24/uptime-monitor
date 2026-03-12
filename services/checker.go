@@ -1,65 +1,34 @@
 package services
 
 import (
-	"fmt"
-	"net/http"
-	"time"
-	"uptime-monitor/db"
+    "net/http"
+    "uptime-monitor/db"
+    "time"
 )
 
 func CheckWebsites() {
+    for {
+        rows, _ := db.DB.Query("SELECT id, url FROM monitors")
+        for rows.Next() {
+            var id int
+            var url string
+            rows.Scan(&id, &url)
 
-	for {
+            start := time.Now()
+            resp, err := http.Get(url)
+            duration := time.Since(start).Milliseconds()
 
-		rows, err := db.DB.Query("SELECT id, url FROM monitors")
+            status := "DOWN"
+            if err == nil && resp.StatusCode < 400 {
+                status = "UP"
+            }
 
-		if err != nil {
-			fmt.Println("error fetching monitors:", err)
-			time.Sleep(30 * time.Second)
-			continue
-		}
-
-		for rows.Next() {
-
-			var id int
-			var url string
-
-			rows.Scan(&id, &url)
-
-			start := time.Now()
-
-			resp, err := http.Get(url)
-
-			duration := time.Since(start)
-
-			if err != nil {
-
-				fmt.Println("DOWN:", url)
-
-				db.DB.Exec(
-					"INSERT INTO checks (monitor_id,status,response_time) VALUES ($1,$2,$3)",
-					id,
-					0,
-					0,
-				)
-
-				continue
-			}
-
-			resp.Body.Close()
-
-			fmt.Println("UP:", url, duration.Milliseconds(), "ms")
-
-			db.DB.Exec(
-				"INSERT INTO checks (monitor_id,status,response_time) VALUES ($1,$2,$3)",
-				id,
-				resp.StatusCode,
-				duration.Milliseconds(),
-			)
-		}
-
-		rows.Close()
-
-		time.Sleep(30 * time.Second)
-	}
+            db.DB.Exec(
+                "INSERT INTO checks (monitor_id, status, response_time, checked_at) VALUES ($1,$2,$3,$4)",
+                id, status, duration, time.Now(),
+            )
+        }
+        rows.Close()
+        time.Sleep(10 * time.Second)
+    }
 }

@@ -1,55 +1,33 @@
 package handlers
 
 import (
-	"uptime-monitor/db"
-	"uptime-monitor/models"
-
-	"github.com/gin-gonic/gin"
+    "encoding/json"
+    "net/http"
+    "uptime-monitor/db"
 )
 
-func GetMonitors(c *gin.Context) {
-
-	rows, err := db.DB.Query("SELECT id, url FROM monitors")
-
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	defer rows.Close()
-
-	var monitors []models.Monitor
-
-	for rows.Next() {
-
-		var m models.Monitor
-
-		rows.Scan(&m.ID, &m.URL)
-
-		monitors = append(monitors, m)
-	}
-
-	c.JSON(200, monitors)
+type Monitor struct {
+    ID  int    `json:"id"`
+    URL string `json:"url"`
 }
 
-func CreateMonitor(c *gin.Context) {
+func GetMonitors(w http.ResponseWriter, r *http.Request) {
+    rows, err := db.DB.Query("SELECT id, url FROM monitors")
+    if err != nil {
+        http.Error(w, err.Error(), 500)
+        return
+    }
+    defer rows.Close()
 
-	var m models.Monitor
+    var monitors []Monitor
+    for rows.Next() {
+        var m Monitor
+        rows.Scan(&m.ID, &m.URL)
+        monitors = append(monitors, m)
+    }
 
-	if err := c.BindJSON(&m); err != nil {
-		c.JSON(400, gin.H{"error": "invalid input"})
-		return
-	}
-
-	_, err := db.DB.Exec(
-		"INSERT INTO monitors (url) VALUES ($1)",
-		m.URL,
-	)
-
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(200, gin.H{"message": "monitor created"})
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(monitors)
 }
+
+// Tambahkan CreateMonitor, UpdateMonitor, DeleteMonitor sesuai kebutuhan
