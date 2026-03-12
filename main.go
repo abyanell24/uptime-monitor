@@ -6,12 +6,15 @@ import (
 	"uptime-monitor/services"
 
 	"github.com/gin-gonic/gin"
+
+	"fmt"
+    "uptime-monitor/db"
 )
 
 func main() {
-	ConnectDB()
-	db.Connect()
-
+	db.ConnectDB()
+	
+	fmt.Println("App started")
 	go services.CheckWebsites()
 
 	r := gin.Default()

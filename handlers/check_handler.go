@@ -6,6 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func SomeHandler() {
+    db.DB.Query("SELECT ...")
+}
+
 func GetChecks(c *gin.Context) {
 
 	monitorID := c.Param("monitor_id")
